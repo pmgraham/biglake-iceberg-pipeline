@@ -1,0 +1,66 @@
+resource "google_cloud_run_v2_service" "file_loader" {
+  name     = "file-loader"
+  location = var.region
+  project  = google_project.pipeline.project_id
+
+  ingress = "INGRESS_TRAFFIC_INTERNAL_ONLY"
+
+  template {
+    service_account = google_service_account.file_loader.email
+
+    scaling {
+      min_instance_count = 0
+      max_instance_count = 10
+    }
+
+    max_instance_request_concurrency = 1
+    timeout                          = "300s"
+
+    vpc_access {
+      network_interfaces {
+        network    = google_compute_network.pipeline.id
+        subnetwork = google_compute_subnetwork.us_central1.id
+      }
+      egress = "ALL_TRAFFIC"
+    }
+
+    containers {
+      # Placeholder — replaced by `gcloud run deploy --source`
+      image = "us-docker.pkg.dev/cloudrun/container/placeholder"
+
+      resources {
+        limits = {
+          memory = var.loader_memory
+          cpu    = "1"
+        }
+      }
+
+      env {
+        name  = "GCP_PROJECT"
+        value = google_project.pipeline.project_id
+      }
+      env {
+        name  = "GCP_LOCATION"
+        value = var.region
+      }
+      env {
+        name  = "GCS_BUCKET"
+        value = google_storage_bucket.pipeline.name
+      }
+      env {
+        name  = "EVENT_TOPIC"
+        value = google_pubsub_topic.pipeline_events.name
+      }
+      env {
+        name  = "ICEBERG_CATALOG"
+        value = google_biglake_catalog.pipeline.name
+      }
+      env {
+        name  = "ICEBERG_BASE_PATH"
+        value = "gs://${google_storage_bucket.pipeline.name}/iceberg"
+      }
+    }
+  }
+
+  depends_on = [google_project_service.required_apis]
+}
