@@ -47,3 +47,8 @@ output "logger_service_account" {
   description = "Pipeline logger service account email"
   value       = google_service_account.pipeline_logger.email
 }
+
+output "dataplex_lake" {
+  description = "Dataplex lake name"
+  value       = google_dataplex_lake.pipeline.name
+}
