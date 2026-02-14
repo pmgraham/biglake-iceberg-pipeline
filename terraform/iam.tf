@@ -107,3 +107,11 @@ resource "google_project_iam_member" "eventarc_receiver" {
   role    = "roles/eventarc.eventReceiver"
   member  = "serviceAccount:${google_service_account.eventarc_trigger.email}"
 }
+
+# --- GCS Service Agent (required for Eventarc GCS triggers) ---
+
+resource "google_project_iam_member" "gcs_pubsub_publisher" {
+  project = google_project.pipeline.project_id
+  role    = "roles/pubsub.publisher"
+  member  = "serviceAccount:service-${data.google_project.current.number}@gs-project-accounts.iam.gserviceaccount.com"
+}

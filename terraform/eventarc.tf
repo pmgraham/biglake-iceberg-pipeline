@@ -13,13 +13,6 @@ resource "google_eventarc_trigger" "gcs_file_upload" {
     value     = google_storage_bucket.pipeline.name
   }
 
-  # Only trigger on inbox/** prefix
-  matching_criteria {
-    attribute = "name"
-    operator  = "match-path-pattern"
-    value     = "inbox/**"
-  }
-
   destination {
     cloud_run_service {
       service = google_cloud_run_v2_service.data_agent.name

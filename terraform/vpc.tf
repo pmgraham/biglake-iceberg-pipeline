@@ -67,7 +67,7 @@ resource "google_compute_global_address" "google_apis" {
 }
 
 resource "google_compute_global_forwarding_rule" "google_apis" {
-  name                  = "google-apis-psc-rule"
+  name                  = "googleapispsc"
   project               = google_project.pipeline.project_id
   target                = "all-apis"
   network               = google_compute_network.pipeline.id

@@ -47,5 +47,5 @@ resource "google_storage_bucket_object" "folders" {
 
   bucket  = google_storage_bucket.pipeline.name
   name    = each.value
-  content = ""
+  content = " "
 }
