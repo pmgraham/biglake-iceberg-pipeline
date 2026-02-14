@@ -47,5 +47,13 @@ resource "google_cloud_run_v2_service" "pipeline_logger" {
     }
   }
 
+  lifecycle {
+    ignore_changes = [
+      template[0].containers[0].image,
+      client,
+      client_version,
+    ]
+  }
+
   depends_on = [google_project_service.required_apis]
 }

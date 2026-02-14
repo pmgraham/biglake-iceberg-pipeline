@@ -74,9 +74,21 @@ resource "google_project_iam_member" "loader_bigquery" {
   member  = "serviceAccount:${google_service_account.file_loader.email}"
 }
 
+resource "google_project_iam_member" "loader_bigquery_job_user" {
+  project = google_project.pipeline.project_id
+  role    = "roles/bigquery.jobUser"
+  member  = "serviceAccount:${google_service_account.file_loader.email}"
+}
+
 resource "google_project_iam_member" "loader_biglake" {
   project = google_project.pipeline.project_id
   role    = "roles/biglake.admin"
+  member  = "serviceAccount:${google_service_account.file_loader.email}"
+}
+
+resource "google_project_iam_member" "loader_bigquery_connection_admin" {
+  project = google_project.pipeline.project_id
+  role    = "roles/bigquery.connectionAdmin"
   member  = "serviceAccount:${google_service_account.file_loader.email}"
 }
 

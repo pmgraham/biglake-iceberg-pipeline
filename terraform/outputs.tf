@@ -52,3 +52,8 @@ output "dataplex_lake" {
   description = "Dataplex lake name"
   value       = google_dataplex_lake.pipeline.name
 }
+
+output "vertex_ai_connection_id" {
+  description = "BigQuery remote connection ID for Vertex AI"
+  value       = google_bigquery_connection.vertex_ai.connection_id
+}

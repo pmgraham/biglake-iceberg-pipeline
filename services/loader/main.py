@@ -6,9 +6,9 @@ import time
 import functions_framework
 from cloudevents.http import CloudEvent
 
+import bigquery_manager
 import cleanup
 import dataplex_notify
-import iceberg_manager
 import publisher
 from message_parser import parse_load_request
 
@@ -27,43 +27,47 @@ def handle_pubsub(cloud_event: CloudEvent):
     try:
         request = parse_load_request(message)
 
-        logger.info(
-            "Loading %s into %s.%s (mode: %s)",
-            request["parquet_uri"],
-            request["target_namespace"],
-            request["target_table"],
-            request["write_mode"],
-        )
-
-        data = iceberg_manager.read_parquet(request["parquet_uri"])
-
-        catalog = iceberg_manager._get_catalog()
         namespace = request["target_namespace"]
         table_name = request["target_table"]
+        parquet_uri = request["parquet_uri"]
+        write_mode = request["write_mode"]
 
-        if iceberg_manager.table_exists(catalog, namespace, table_name):
-            snapshot_id = iceberg_manager.append_data(
-                namespace=namespace,
-                table_name=table_name,
-                data=data,
-                write_mode=request["write_mode"],
-                upsert_keys=request.get("upsert_keys", []),
-            )
+        logger.info(
+            "Loading %s into %s.%s (mode: %s)",
+            parquet_uri,
+            namespace,
+            table_name,
+            write_mode,
+        )
+
+        if bigquery_manager.table_exists(namespace, table_name):
+            if write_mode == "UPSERT":
+                load_id = bigquery_manager.upsert_data(
+                    namespace=namespace,
+                    table_name=table_name,
+                    parquet_uri=parquet_uri,
+                    upsert_keys=request.get("upsert_keys", []),
+                )
+            else:
+                load_id = bigquery_manager.load_data(
+                    namespace=namespace,
+                    table_name=table_name,
+                    parquet_uri=parquet_uri,
+                    write_mode=write_mode,
+                )
         else:
-            snapshot_id = iceberg_manager.create_and_load(
+            load_id = bigquery_manager.create_iceberg_table(
                 namespace=namespace,
                 table_name=table_name,
-                data=data,
-                partition_spec_config=request.get("partition_spec", []),
+                parquet_uri=parquet_uri,
             )
 
         archive_uri = cleanup.archive_original(
             request["original_file_uri"],
             table_name,
         )
-        cleanup.delete_staging_parquet(request["parquet_uri"])
+        cleanup.delete_staging_parquet(parquet_uri)
 
-        # Fire-and-forget: trigger immediate Dataplex discovery
         dataplex_notify.trigger_discovery(namespace, table_name)
 
         duration = time.time() - start
@@ -73,20 +77,20 @@ def handle_pubsub(cloud_event: CloudEvent):
             "file_hash": request["file_hash"],
             "target_namespace": namespace,
             "target_table": table_name,
-            "iceberg_snapshot_id": snapshot_id,
-            "write_mode": request["write_mode"],
-            "row_count_loaded": len(data),
+            "iceberg_snapshot_id": load_id,
+            "write_mode": write_mode,
+            "row_count_loaded": request.get("row_count", 0),
             "original_file_uri": request["original_file_uri"],
             "archive_uri": archive_uri,
             "load_duration_seconds": round(duration, 1),
         })
 
         logger.info(
-            "Successfully loaded %d rows into %s.%s in %.1fs",
-            len(data),
+            "Successfully loaded into %s.%s in %.1fs (job: %s)",
             namespace,
             table_name,
             duration,
+            load_id,
         )
 
     except Exception as e:
@@ -105,8 +109,5 @@ def handle_pubsub(cloud_event: CloudEvent):
         }
 
         publisher.publish_event(error_payload)
-
         logger.exception("Load failed for %s", message.get("file_hash", "unknown"))
-
-        # Raise to trigger Pub/Sub retry
         raise

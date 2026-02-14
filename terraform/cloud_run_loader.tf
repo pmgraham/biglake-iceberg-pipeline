@@ -52,14 +52,22 @@ resource "google_cloud_run_v2_service" "file_loader" {
         value = google_pubsub_topic.pipeline_events.name
       }
       env {
-        name  = "ICEBERG_CATALOG"
-        value = google_biglake_catalog.pipeline.name
+        name  = "BIGLAKE_CONNECTION"
+        value = google_bigquery_connection.biglake_iceberg.connection_id
       }
       env {
         name  = "ICEBERG_BASE_PATH"
         value = "gs://${google_storage_bucket.pipeline.name}/iceberg"
       }
     }
+  }
+
+  lifecycle {
+    ignore_changes = [
+      template[0].containers[0].image,
+      client,
+      client_version,
+    ]
   }
 
   depends_on = [google_project_service.required_apis]
