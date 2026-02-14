@@ -35,7 +35,7 @@ resource "google_dataplex_zone" "raw" {
 
   discovery_spec {
     enabled  = true
-    schedule = "0 */6 * * *" # Every 6 hours
+    schedule = "*/30 * * * *" # Every 30 minutes
   }
 }
 
@@ -55,7 +55,7 @@ resource "google_dataplex_zone" "bronze" {
 
   discovery_spec {
     enabled  = true
-    schedule = "0 */6 * * *"
+    schedule = "*/30 * * * *"
   }
 }
 
@@ -75,7 +75,7 @@ resource "google_dataplex_zone" "silver" {
 
   discovery_spec {
     enabled  = true
-    schedule = "0 */12 * * *" # Every 12 hours
+    schedule = "0 * * * *" # Every hour
   }
 }
 
@@ -95,7 +95,7 @@ resource "google_dataplex_zone" "gold" {
 
   discovery_spec {
     enabled  = true
-    schedule = "0 */12 * * *"
+    schedule = "0 * * * *"
   }
 }
 
@@ -119,7 +119,7 @@ resource "google_dataplex_asset" "raw_gcs" {
 
   discovery_spec {
     enabled  = true
-    schedule = "0 */6 * * *"
+    schedule = "*/30 * * * *"
   }
 }
 
@@ -141,7 +141,7 @@ resource "google_dataplex_asset" "raw_pre_processing" {
 
   discovery_spec {
     enabled  = true
-    schedule = "0 */6 * * *"
+    schedule = "*/30 * * * *"
   }
 }
 
@@ -163,7 +163,7 @@ resource "google_dataplex_asset" "bronze_dataset" {
 
   discovery_spec {
     enabled  = true
-    schedule = "0 */6 * * *"
+    schedule = "*/30 * * * *"
   }
 }
 
@@ -185,7 +185,7 @@ resource "google_dataplex_asset" "silver_dataset" {
 
   discovery_spec {
     enabled  = true
-    schedule = "0 */12 * * *"
+    schedule = "0 * * * *"
   }
 }
 
@@ -207,7 +207,7 @@ resource "google_dataplex_asset" "gold_dataset" {
 
   discovery_spec {
     enabled  = true
-    schedule = "0 */12 * * *"
+    schedule = "0 * * * *"
   }
 }
 
