@@ -7,6 +7,7 @@ import functions_framework
 from cloudevents.http import CloudEvent
 
 import cleanup
+import dataplex_notify
 import iceberg_manager
 import publisher
 from message_parser import parse_load_request
@@ -61,6 +62,9 @@ def handle_pubsub(cloud_event: CloudEvent):
             table_name,
         )
         cleanup.delete_staging_parquet(request["parquet_uri"])
+
+        # Fire-and-forget: trigger immediate Dataplex discovery
+        dataplex_notify.trigger_discovery(namespace, table_name)
 
         duration = time.time() - start
 

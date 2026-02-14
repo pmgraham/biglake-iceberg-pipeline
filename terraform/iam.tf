@@ -74,6 +74,12 @@ resource "google_project_iam_member" "loader_biglake" {
   member  = "serviceAccount:${google_service_account.file_loader.email}"
 }
 
+resource "google_project_iam_member" "loader_dataplex" {
+  project = google_project.pipeline.project_id
+  role    = "roles/dataplex.developer"
+  member  = "serviceAccount:${google_service_account.file_loader.email}"
+}
+
 # --- Pipeline Logger Roles ---
 
 resource "google_project_iam_member" "logger_firestore" {
