@@ -8,7 +8,6 @@ from cloudevents.http import CloudEvent
 
 import bigquery_manager
 import cleanup
-import dataplex_notify
 import publisher
 from message_parser import parse_load_request
 
@@ -67,8 +66,6 @@ def handle_pubsub(cloud_event: CloudEvent):
             table_name,
         )
         cleanup.delete_staging_parquet(parquet_uri)
-
-        dataplex_notify.trigger_discovery(namespace, table_name)
 
         duration = time.time() - start
 
