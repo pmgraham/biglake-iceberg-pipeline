@@ -1,7 +1,7 @@
 variable "project_id" {
   description = "GCP project ID"
   type        = string
-  default     = "biglake-iceberg-medallion-lakehouse"
+  default     = "REDACTED_PROJECT"
 }
 
 variable "billing_account" {
