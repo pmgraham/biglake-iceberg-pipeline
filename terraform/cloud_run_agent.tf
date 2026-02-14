@@ -50,6 +50,18 @@ resource "google_cloud_run_v2_service" "data_agent" {
         name  = "EVENT_TOPIC"
         value = google_pubsub_topic.pipeline_events.name
       }
+      env {
+        name  = "GOOGLE_GENAI_USE_VERTEXAI"
+        value = "TRUE"
+      }
+      env {
+        name  = "GOOGLE_CLOUD_PROJECT"
+        value = google_project.pipeline.project_id
+      }
+      env {
+        name  = "GOOGLE_CLOUD_LOCATION"
+        value = var.region
+      }
     }
   }
 

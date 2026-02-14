@@ -19,12 +19,12 @@ terraform {
 }
 
 provider "google" {
-  project = google_project.pipeline.project_id
+  project = var.project_id
   region  = var.region
 }
 
 provider "google-beta" {
-  project = google_project.pipeline.project_id
+  project = var.project_id
   region  = var.region
 }
 
@@ -35,7 +35,7 @@ resource "google_project" "pipeline" {
   project_id          = var.project_id
   billing_account     = var.billing_account
   folder_id           = var.folder_id != "" ? var.folder_id : null
-  org_id              = var.folder_id == "" ? var.org_id : null
+  org_id              = var.folder_id == "" && var.org_id != "" ? var.org_id : null
   auto_create_network = false
 
   labels = {
@@ -66,6 +66,7 @@ resource "google_project_service" "required_apis" {
     "servicenetworking.googleapis.com",
     "serviceusage.googleapis.com",
     "vpcaccess.googleapis.com",
+    "aiplatform.googleapis.com",
   ])
 
   project            = google_project.pipeline.project_id

@@ -48,6 +48,12 @@ resource "google_project_iam_member" "agent_firestore" {
   member  = "serviceAccount:${google_service_account.data_agent.email}"
 }
 
+resource "google_project_iam_member" "agent_vertex_ai" {
+  project = google_project.pipeline.project_id
+  role    = "roles/aiplatform.user"
+  member  = "serviceAccount:${google_service_account.data_agent.email}"
+}
+
 # --- File Loader Roles ---
 
 resource "google_project_iam_member" "loader_storage" {
