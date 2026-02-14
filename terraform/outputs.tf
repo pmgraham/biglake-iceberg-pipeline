@@ -48,10 +48,6 @@ output "logger_service_account" {
   value       = google_service_account.pipeline_logger.email
 }
 
-output "dataplex_lake" {
-  description = "Dataplex lake name"
-  value       = google_dataplex_lake.pipeline.name
-}
 
 output "vertex_ai_connection_id" {
   description = "BigQuery remote connection ID for Vertex AI"
