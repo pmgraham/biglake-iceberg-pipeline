@@ -172,7 +172,7 @@ def _update_table_routing(message):
         update_data["first_loaded_at"] = now
         update_data["auto_create_table"] = True
         update_data["enabled"] = True
-        update_data["source_folder"] = f"gs://{Config.GCS_BUCKET}/inbox/{table}/" if hasattr(Config, "GCS_BUCKET") else ""
+        update_data["source_folder"] = f"gs://{Config.GCS_BUCKET}/inbox/{table}/"
         update_data["write_mode"] = message.get("write_mode", "APPEND")
 
     doc_ref.set(update_data, merge=True)

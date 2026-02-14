@@ -39,6 +39,11 @@ resource "google_cloud_run_v2_service" "pipeline_logger" {
         name  = "GCP_PROJECT"
         value = google_project.pipeline.project_id
       }
+
+      env {
+        name  = "GCS_BUCKET"
+        value = google_storage_bucket.pipeline.name
+      }
     }
   }
 
