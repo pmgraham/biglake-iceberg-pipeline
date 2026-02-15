@@ -1,13 +1,17 @@
-"""Generate synthetic thelook_ecommerce demo data for the BigLake Iceberg pipeline.
+"""Generate dirty incremental-batch CSVs for pipeline testing.
 
-Produces dirty initial-load CSVs and cleaner incremental-batch CSVs that
-exercise the data agent's full cleaning protocol (whitespace, mixed case,
-null sentinels, currency symbols, date formats, within-file duplicates).
+Produces synthetic data with intentional quality issues that exercise the data
+agent's full cleaning protocol (whitespace, mixed case, null sentinels,
+currency symbols, date formats, within-file duplicates).
+
+Initial data is loaded from BigQuery public dataset via seed.py.
+This script generates only incremental batches for testing the pipeline's
+append/incremental behavior.
 
 Usage:
-    python generate.py --all          # generate initial + incremental
-    python generate.py --initial      # generate initial load only
-    python generate.py --incremental  # generate incremental batches only
+    python generate.py                # generate 3 incremental batches (default)
+    python generate.py --batches 5    # generate 5 batches
+    python generate.py --seed 123     # custom random seed
 """
 
 from __future__ import annotations
@@ -15,8 +19,6 @@ from __future__ import annotations
 import argparse
 import csv
 import hashlib
-import math
-import os
 import random
 import uuid
 from dataclasses import dataclass, field
@@ -102,7 +104,6 @@ class Config:
     date_end: str = "2026-02-14"
     incremental_date_start: str = "2026-02-01"
     incremental_batches: int = 3
-    initial_dirty_rate: float = 0.15
     incremental_dirty_rates: list[float] = field(
         default_factory=lambda: [0.05, 0.03, 0.02]
     )
@@ -535,51 +536,31 @@ class TheLookGenerator:
             writer.writerows(rows)
         print(f"  wrote {len(rows):>6,} rows → {filepath}")
 
-    # ------ Generation orchestrators ------
+    # ------ Generation orchestrator ------
 
-    def generate_initial(self) -> None:
-        print("Generating initial load data...")
-        dirty = DirtyInjector(self.config.initial_dirty_rate)
-        counts = self.config.initial_counts
-        base = self.base_dir / "initial"
+    def _bootstrap_id_pools(self) -> None:
+        """Initialize ID pools and reference data for incremental generation.
 
-        # 1. Distribution centers
-        rows = self._gen_distribution_centers(dirty)
-        self._write_csv(rows, base / "distribution_centers" / "distribution_centers_initial.csv")
-
-        # 2. Products (depends on distribution_centers)
-        rows = self._gen_products(counts["products"], dirty)
-        rows = self._inject_duplicates(rows, 0.03)
-        self._write_csv(rows, base / "products" / "products_initial.csv")
-
-        # 3. Users (no deps)
-        rows = self._gen_users(counts["users"], dirty)
-        rows = self._inject_duplicates(rows, 0.03)
-        self._write_csv(rows, base / "users" / "users_initial.csv")
-
-        # 4. Inventory items (depends on products)
-        rows = self._gen_inventory_items(counts["inventory_items"], dirty)
-        rows = self._inject_duplicates(rows, 0.03)
-        self._write_csv(rows, base / "inventory_items" / "inventory_items_initial.csv")
-
-        # 5. Orders (depends on users)
-        rows = self._gen_orders(counts["orders"], dirty)
-        rows = self._inject_duplicates(rows, 0.03)
-        self._write_csv(rows, base / "orders" / "orders_initial.csv")
-
-        # 6. Order items (depends on orders, users, products, inventory_items)
-        rows = self._gen_order_items(counts["order_items"], dirty)
-        rows = self._inject_duplicates(rows, 0.03)
-        self._write_csv(rows, base / "order_items" / "order_items_initial.csv")
-
-        # 7. Events (depends on users)
-        rows = self._gen_events(counts["events"], dirty)
-        rows = self._inject_duplicates(rows, 0.03)
-        self._write_csv(rows, base / "events" / "events_initial.csv")
-
-        print("Initial load generation complete.\n")
+        Since initial data comes from BigQuery (seed.py), we bootstrap the
+        internal state needed for referential integrity in incremental batches.
+        """
+        dirty = DirtyInjector(0.0)  # no dirtying — just populate internal state
+        self._gen_distribution_centers(dirty)
+        self._gen_products(
+            self.config.initial_counts["products"], dirty,
+        )
+        self._gen_users(
+            self.config.initial_counts["users"], dirty,
+        )
+        self._gen_orders(
+            self.config.initial_counts["orders"], dirty,
+        )
+        self._gen_inventory_items(
+            self.config.initial_counts["inventory_items"], dirty,
+        )
 
     def generate_incremental(self) -> None:
+        self._bootstrap_id_pools()
         print("Generating incremental batch data...")
         incr_counts = self.config.incremental_counts
         base = self.base_dir / "incremental"
@@ -626,22 +607,19 @@ class TheLookGenerator:
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Generate thelook_ecommerce demo data for BigLake Iceberg pipeline"
+        description="Generate dirty incremental batch CSVs for pipeline testing"
     )
-    group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument("--all", action="store_true", help="Generate initial + incremental")
-    group.add_argument("--initial", action="store_true", help="Generate initial load only")
-    group.add_argument("--incremental", action="store_true", help="Generate incremental batches only")
-    parser.add_argument("--seed", type=int, default=42, help="Random seed (default: 42)")
+    parser.add_argument(
+        "--seed", type=int, default=42, help="Random seed (default: 42)",
+    )
+    parser.add_argument(
+        "--batches", type=int, default=3, help="Number of batches (default: 3)",
+    )
 
     args = parser.parse_args()
-    config = Config(seed=args.seed)
+    config = Config(seed=args.seed, incremental_batches=args.batches)
     gen = TheLookGenerator(config)
-
-    if args.initial or args.all:
-        gen.generate_initial()
-    if args.incremental or args.all:
-        gen.generate_incremental()
+    gen.generate_incremental()
 
     print("Done.")
 

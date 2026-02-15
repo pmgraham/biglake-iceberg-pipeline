@@ -44,6 +44,11 @@ resource "google_cloud_run_v2_service" "pipeline_logger" {
         name  = "GCS_BUCKET"
         value = google_storage_bucket.pipeline.name
       }
+
+      env {
+        name  = "FIRESTORE_DATABASE"
+        value = google_firestore_database.pipeline_state.name
+      }
     }
   }
 

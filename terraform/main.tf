@@ -31,7 +31,7 @@ provider "google-beta" {
 # --- Project ---
 
 resource "google_project" "pipeline" {
-  name                = "REDACTED_PROJECT"
+  name                = var.project_id
   project_id          = var.project_id
   billing_account     = var.billing_account
   folder_id           = var.folder_id != "" ? var.folder_id : null

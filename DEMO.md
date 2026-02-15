@@ -1,7 +1,8 @@
 # BigLake Iceberg Pipeline — Demo Scenarios
 
-Demo data: synthetic `thelook_ecommerce` (~12K rows across 7 tables).
-Generated via `test_data/thelook_ecommerce/generate.py`.
+Demo data: `thelook_ecommerce` from BigQuery public dataset (7 tables).
+Initial data loaded via `test_data/thelook_ecommerce/seed.py`.
+Incremental dirty batches generated via `test_data/thelook_ecommerce/generate.py`.
 
 ---
 
@@ -10,10 +11,11 @@ Generated via `test_data/thelook_ecommerce/generate.py`.
 **What it shows:** Event-driven pipeline — dirty CSVs land in GCS, Eventarc triggers the data agent, agent cleans and exports to Parquet, loader creates/appends BigQuery Iceberg tables.
 
 **Steps:**
-1. Upload initial CSVs to `gs://REDACTED_BUCKET/inbox/{table_name}/`
-2. Agent auto-detects format, normalizes columns, coerces types, flags duplicates, extracts currency symbols into `value_type` companion columns
-3. Parquet lands in `staging/`, loader creates Iceberg tables in `bronze.*`
-4. Upload incremental batches — appends to existing tables
+1. Run `python test_data/thelook_ecommerce/seed.py` to load initial data from BigQuery public dataset
+2. Generate incremental batches: `python test_data/thelook_ecommerce/generate.py`
+3. Upload batch CSVs to `gs://<YOUR_BUCKET_NAME>/inbox/{table_name}/`
+4. Agent auto-detects format, normalizes columns, coerces types, flags duplicates, extracts currency symbols into `value_type` companion columns
+5. Parquet lands in `staging/`, loader creates/appends Iceberg tables in `bronze.*`
 
 **Dirty data exercised:**
 - Whitespace padding (15% of strings)
@@ -130,7 +132,7 @@ SELECT
   u.state,
   u.country,
   AI.GENERATE_TEXT(
-    MODEL `REDACTED_PROJECT.llm.gemini_2_5_flash`,
+    MODEL `<YOUR_PROJECT_ID>.llm.gemini_2_5_flash`,
     CONCAT(
       'Standardize this address to USPS format. Return ONLY the formatted address, nothing else.\n',
       'Street: ', COALESCE(u.street_address, ''), '\n',
@@ -187,7 +189,7 @@ BI Engine caching, materialized views.
    text column combining category, brand, and name:
 
 ```sql
-CREATE TABLE `REDACTED_PROJECT.gold.product_catalog`
+CREATE TABLE `<YOUR_PROJECT_ID>.gold.product_catalog`
 AS SELECT
   id AS product_id,
   name,
@@ -196,24 +198,24 @@ AS SELECT
   department,
   retail_price,
   CONCAT(category, ' - ', brand, ' ', name) AS description
-FROM `REDACTED_PROJECT.silver.products`;
+FROM `<YOUR_PROJECT_ID>.silver.products`;
 ```
 
 2. Create an embedding model connection and generate embeddings:
 
 ```sql
-CREATE MODEL `REDACTED_PROJECT.gold.embedding_model`
-  REMOTE WITH CONNECTION `REDACTED_PROJECT.us-central1.biglake-iceberg`
+CREATE MODEL `<YOUR_PROJECT_ID>.gold.embedding_model`
+  REMOTE WITH CONNECTION `<YOUR_PROJECT_ID>.us-central1.biglake-iceberg`
   OPTIONS (ENDPOINT = 'text-embedding-005');
 
-ALTER TABLE `REDACTED_PROJECT.gold.product_catalog`
+ALTER TABLE `<YOUR_PROJECT_ID>.gold.product_catalog`
   ADD COLUMN description_embedding ARRAY<FLOAT64>;
 
-UPDATE `REDACTED_PROJECT.gold.product_catalog` p
+UPDATE `<YOUR_PROJECT_ID>.gold.product_catalog` p
 SET description_embedding = (
   SELECT ml_generate_embedding_result
   FROM ML.GENERATE_EMBEDDING(
-    MODEL `REDACTED_PROJECT.gold.embedding_model`,
+    MODEL `<YOUR_PROJECT_ID>.gold.embedding_model`,
     (SELECT p.description AS content)
   )
 );
@@ -223,7 +225,7 @@ SET description_embedding = (
 
 ```sql
 CREATE VECTOR INDEX product_similarity_idx
-ON `REDACTED_PROJECT.gold.product_catalog`(description_embedding)
+ON `<YOUR_PROJECT_ID>.gold.product_catalog`(description_embedding)
 OPTIONS (index_type = 'IVF', distance_type = 'COSINE');
 ```
 
@@ -237,9 +239,9 @@ SELECT
   base.brand,
   distance
 FROM VECTOR_SEARCH(
-  TABLE `REDACTED_PROJECT.gold.product_catalog`,
+  TABLE `<YOUR_PROJECT_ID>.gold.product_catalog`,
   'description_embedding',
-  (SELECT description_embedding FROM `REDACTED_PROJECT.gold.product_catalog` WHERE product_id = 42),
+  (SELECT description_embedding FROM `<YOUR_PROJECT_ID>.gold.product_catalog` WHERE product_id = 42),
   top_k => 5,
   distance_type => 'COSINE'
 )
@@ -252,7 +254,7 @@ Enable auto-embeddings so new products flowing through the pipeline
 (bronze → silver → gold) are automatically embedded on load:
 
 ```sql
-ALTER TABLE `REDACTED_PROJECT.gold.product_catalog`
+ALTER TABLE `<YOUR_PROJECT_ID>.gold.product_catalog`
 SET OPTIONS (
   auto_embedding_columns = [('description', 'description_embedding')]
 );
@@ -266,7 +268,7 @@ BigQuery auto-generates embeddings — no additional pipeline step needed.
 Embed user behavior profiles for customer similarity and segmentation:
 
 ```sql
-CREATE TABLE `REDACTED_PROJECT.gold.customer_profiles`
+CREATE TABLE `<YOUR_PROJECT_ID>.gold.customer_profiles`
 AS SELECT
   cm.user_id,
   cm.email,
@@ -278,7 +280,7 @@ AS SELECT
     'return rate ', CAST(ROUND(cm.return_rate * 100, 1) AS STRING), '%, ',
     IF(cm.churn_flag, 'churned', 'active')
   ) AS behavior_summary
-FROM `REDACTED_PROJECT.gold.customer_metrics` cm;
+FROM `<YOUR_PROJECT_ID>.gold.customer_metrics` cm;
 ```
 
 Then embed `behavior_summary` and use vector search to find customers
@@ -315,11 +317,11 @@ to unlock vector indexes, auto-embeddings, BI Engine caching, and materialized v
 
 ## Infrastructure
 
-- **GCS Bucket:** `REDACTED_BUCKET` (inbox/ → staging/ → iceberg/)
+- **GCS Bucket:** `<YOUR_BUCKET_NAME>` (inbox/ → staging/ → iceberg/)
 - **BigQuery Datasets:** `bronze`, `silver`, `gold`
 - **Iceberg Metastore:** BigLake Metastore (auto-registered via BigLake connection)
 - **Cloud Run Services:** data-agent, file-loader, pipeline-logger
 - **Eventarc:** GCS finalize → data-agent
 - **Pub/Sub:** Topic A (LOAD_REQUEST) → file-loader, Topic B (events) → pipeline-logger
 - **Firestore:** `pipeline-state` (file_registry, processing_locks)
-- **GCP Project:** `REDACTED_PROJECT`
+- **GCP Project:** `<YOUR_PROJECT_ID>`

@@ -1,4 +1,4 @@
-CREATE TABLE `REDACTED_PROJECT.silver.order_items`
+CREATE TABLE `__PROJECT_ID__.silver.order_items`
 (
     id INT64,
     order_id INT64,
@@ -14,9 +14,9 @@ CREATE TABLE `REDACTED_PROJECT.silver.order_items`
     sale_price_value_type STRING,
     silver_loaded_at TIMESTAMP
 )
-WITH CONNECTION `REDACTED_PROJECT.us-central1.biglake-iceberg`
+WITH CONNECTION `__PROJECT_ID__.__REGION__.__BIGLAKE_CONNECTION__`
 OPTIONS (
     file_format = 'PARQUET',
     table_format = 'ICEBERG',
-    storage_uri = 'gs://REDACTED_BUCKET/iceberg/silver/order_items'
+    storage_uri = 'gs://__BUCKET_NAME__/iceberg/silver/order_items'
 );
