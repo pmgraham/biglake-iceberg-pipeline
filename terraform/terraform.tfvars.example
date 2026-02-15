@@ -7,7 +7,9 @@ org_id          = ""    # GCP organization ID (leave empty if using folder_id)
 folder_id       = ""    # GCP folder ID (leave empty if using org_id)
 bucket_name     = ""    # Globally unique GCS bucket name for the pipeline
 
-# Optional: Override default connection IDs
+# Optional: Override defaults
+# bq_location             = "US"           # BigQuery dataset location (default: US)
+# region                  = "us-central1"  # Compute region for Cloud Run, etc.
 # biglake_connection_id   = "biglake-iceberg"
 # vertex_ai_connection_id = "vertex-ai-remote"
 # spark_connection_id     = "spark-proc"

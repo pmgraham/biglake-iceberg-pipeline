@@ -16,7 +16,7 @@ fi
 source "${ENV_FILE}"
 
 # Validate required variables
-for var in PROJECT_ID BUCKET_NAME REGION BIGLAKE_CONNECTION SPARK_CONNECTION; do
+for var in PROJECT_ID BUCKET_NAME BQ_LOCATION BIGLAKE_CONNECTION SPARK_CONNECTION; do
     if [[ -z "${!var:-}" ]]; then
         echo "ERROR: ${var} is not set in pipeline.env"
         exit 1
@@ -26,7 +26,7 @@ done
 echo "Configuring SQL templates..."
 echo "  PROJECT_ID:         ${PROJECT_ID}"
 echo "  BUCKET_NAME:        ${BUCKET_NAME}"
-echo "  REGION:             ${REGION}"
+echo "  BQ_LOCATION:        ${BQ_LOCATION}"
 echo "  BIGLAKE_CONNECTION: ${BIGLAKE_CONNECTION}"
 echo "  SPARK_CONNECTION:   ${SPARK_CONNECTION}"
 echo ""
@@ -44,7 +44,7 @@ while IFS= read -r -d '' file; do
     sed "${SED_INPLACE[@]}" \
         -e "s/__PROJECT_ID__/${PROJECT_ID}/g" \
         -e "s/__BUCKET_NAME__/${BUCKET_NAME}/g" \
-        -e "s/__REGION__/${REGION}/g" \
+        -e "s/__REGION__/${BQ_LOCATION}/g" \
         -e "s/__BIGLAKE_CONNECTION__/${BIGLAKE_CONNECTION}/g" \
         -e "s/__SPARK_CONNECTION__/${SPARK_CONNECTION}/g" \
         "${file}"
@@ -58,6 +58,5 @@ echo "  1. cd terraform"
 echo "  2. terraform init -backend-config=\"bucket=YOUR_TF_STATE_BUCKET\""
 echo "  3. cp terraform.tfvars.example terraform.tfvars  # fill in values"
 echo "  4. terraform plan -var-file=terraform.tfvars"
-echo "  5. terraform apply"
-echo "  6. Run bronze DDL files in BigQuery to create Iceberg tables"
-echo "  7. python test_data/thelook_ecommerce/seed.py  # load initial data"
+echo "  5. terraform apply  # creates infra + bronze Iceberg tables"
+echo "  6. python test_data/thelook_ecommerce/seed.py  # load initial data"

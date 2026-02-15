@@ -27,9 +27,15 @@ variable "environment" {
 }
 
 variable "region" {
-  description = "GCP region"
+  description = "GCP region for compute resources (Cloud Run, connections, etc.)"
   type        = string
   default     = "us-central1"
+}
+
+variable "bq_location" {
+  description = "BigQuery dataset location (multi-region recommended, e.g. US or EU)"
+  type        = string
+  default     = "US"
 }
 
 variable "bucket_name" {
