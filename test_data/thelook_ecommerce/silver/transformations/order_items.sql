@@ -71,7 +71,14 @@ SELECT
     ) AS returned_at,
 
     sale_price,
-    sale_price_value_type,
+
+    CASE
+        WHEN sale_price_value_type IS NOT NULL
+             AND TRIM(sale_price_value_type) != ''
+        THEN 'USD'
+        ELSE NULL
+    END AS sale_price_value_type,
+
     CURRENT_TIMESTAMP() AS silver_loaded_at
 
 FROM deduplicated

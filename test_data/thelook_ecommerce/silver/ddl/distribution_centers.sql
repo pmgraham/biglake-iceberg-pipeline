@@ -2,6 +2,8 @@ CREATE TABLE `biglake-iceberg-datalake.silver.distribution_centers`
 (
     id INT64,
     name STRING,
+    city STRING,
+    state STRING,
     latitude FLOAT64,
     longitude FLOAT64,
     silver_loaded_at TIMESTAMP

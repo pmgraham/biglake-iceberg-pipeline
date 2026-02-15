@@ -44,3 +44,58 @@ resource "google_project_iam_member" "vertex_ai_connection_user" {
   role    = "roles/aiplatform.user"
   member  = "serviceAccount:${google_bigquery_connection.vertex_ai.cloud_resource[0].service_account_id}"
 }
+
+# BigQuery Spark connection for PySpark stored procedures
+resource "google_bigquery_connection" "spark_proc" {
+  provider      = google-beta
+  connection_id = "spark-proc"
+  location      = var.region
+  project       = google_project.pipeline.project_id
+
+  spark {}
+
+  depends_on = [google_project_service.required_apis]
+}
+
+# IAM bindings for the Spark connection's service account
+resource "google_project_iam_member" "spark_proc_storage" {
+  project = google_project.pipeline.project_id
+  role    = "roles/storage.objectAdmin"
+  member  = "serviceAccount:${google_bigquery_connection.spark_proc.spark[0].service_account_id}"
+}
+
+resource "google_project_iam_member" "spark_proc_bq_data_editor" {
+  project = google_project.pipeline.project_id
+  role    = "roles/bigquery.dataEditor"
+  member  = "serviceAccount:${google_bigquery_connection.spark_proc.spark[0].service_account_id}"
+}
+
+resource "google_project_iam_member" "spark_proc_bq_connection_user" {
+  project = google_project.pipeline.project_id
+  role    = "roles/bigquery.connectionUser"
+  member  = "serviceAccount:${google_bigquery_connection.spark_proc.spark[0].service_account_id}"
+}
+
+resource "google_project_iam_member" "spark_proc_bq_data_viewer" {
+  project = google_project.pipeline.project_id
+  role    = "roles/bigquery.dataViewer"
+  member  = "serviceAccount:${google_bigquery_connection.spark_proc.spark[0].service_account_id}"
+}
+
+resource "google_project_iam_member" "spark_proc_bq_job_user" {
+  project = google_project.pipeline.project_id
+  role    = "roles/bigquery.jobUser"
+  member  = "serviceAccount:${google_bigquery_connection.spark_proc.spark[0].service_account_id}"
+}
+
+resource "google_project_iam_member" "spark_proc_bq_read_session" {
+  project = google_project.pipeline.project_id
+  role    = "roles/bigquery.readSessionUser"
+  member  = "serviceAccount:${google_bigquery_connection.spark_proc.spark[0].service_account_id}"
+}
+
+resource "google_project_iam_member" "spark_proc_biglake_admin" {
+  project = google_project.pipeline.project_id
+  role    = "roles/biglake.admin"
+  member  = "serviceAccount:${google_bigquery_connection.spark_proc.spark[0].service_account_id}"
+}

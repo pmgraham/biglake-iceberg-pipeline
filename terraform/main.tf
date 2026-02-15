@@ -67,6 +67,8 @@ resource "google_project_service" "required_apis" {
     "serviceusage.googleapis.com",
     "vpcaccess.googleapis.com",
     "aiplatform.googleapis.com",
+    "bigqueryconnection.googleapis.com",
+    "dataproc.googleapis.com",
   ])
 
   project            = google_project.pipeline.project_id
