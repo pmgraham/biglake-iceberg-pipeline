@@ -3,6 +3,11 @@ output "project_id" {
   value       = google_project.pipeline.project_id
 }
 
+output "region" {
+  description = "GCP region for compute resources"
+  value       = var.region
+}
+
 output "inbox_bucket_name" {
   description = "Inbox GCS bucket name (Eventarc trigger)"
   value       = google_storage_bucket.inbox.name

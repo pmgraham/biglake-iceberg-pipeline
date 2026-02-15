@@ -47,14 +47,19 @@ terraform apply
 cd ..
 ```
 
-### Step 4 — Create Iceberg tables
+Creates all GCP infrastructure: project, APIs, buckets, BigQuery datasets, bronze Iceberg tables, Cloud Run service stubs, Pub/Sub topics/subscriptions, Eventarc trigger, Firestore, VPC, IAM, and connections.
 
-Run the bronze DDL files in BigQuery to create empty Iceberg tables:
+### Step 4 — Deploy Cloud Run services
 
 ```bash
-for f in test_data/thelook_ecommerce/ddl/*.sql; do
-  bq query --use_legacy_sql=false < "$f"
-done
+./deploy.sh
+```
+
+Builds and deploys all 3 Cloud Run services from source. You can also deploy individually:
+
+```bash
+./deploy.sh data-agent          # deploy one service
+./deploy.sh file-loader pipeline-logger  # deploy specific services
 ```
 
 ### Step 5 — Seed initial data
@@ -64,17 +69,9 @@ pip install google-cloud-bigquery
 python test_data/thelook_ecommerce/seed.py
 ```
 
-Loads data from `bigquery-public-data.thelook_ecommerce` into your bronze Iceberg tables (7 tables).
+Loads data from `bigquery-public-data.thelook_ecommerce` into your bronze Iceberg tables (7 tables, ~3.3M rows).
 
-### Step 6 — Deploy Cloud Run services
-
-```bash
-gcloud run deploy data-agent --source services/data-cleaning-agent/ --region $REGION --project $PROJECT
-gcloud run deploy file-loader --source services/loader/ --region $REGION --project $PROJECT
-gcloud run deploy pipeline-logger --source services/logger/ --region $REGION --project $PROJECT
-```
-
-### Step 7 — Test the pipeline
+### Step 6 — Test the pipeline
 
 ```bash
 # Generate dirty incremental batch CSVs
@@ -92,25 +89,25 @@ gsutil cp test_data/thelook_ecommerce/incremental/users/users_batch_001.csv \
 
 ```
 GCS Inbox Bucket (raw uploads)
-    │
-    ▼ Eventarc trigger
+    |
+    v Eventarc trigger
 Cloud Run: data-agent (ADK)
-    │  ├─ quality assessment
-    │  ├─ data cleaning
-    │  └─ Parquet export → GCS Staging Bucket
-    │
-    ├─► Pub/Sub Topic A (LOAD_REQUEST)
-    │       │
-    │       ▼
-    │   Cloud Run: file-loader
-    │       ├─ Creates/appends BigQuery Iceberg tables (GCS Iceberg Bucket)
-    │       └─ Archives originals (GCS Archive Bucket)
-    │
-    └─► Pub/Sub Topic B (pipeline-events)
-            │
-            ▼
+    |  |- quality assessment
+    |  |- data cleaning
+    |  '- Parquet export -> GCS Staging Bucket
+    |
+    |--> Pub/Sub Topic A (LOAD_REQUEST)
+    |       |
+    |       v
+    |   Cloud Run: file-loader
+    |       |- Creates/appends BigQuery Iceberg tables (GCS Iceberg Bucket)
+    |       '- Archives originals (GCS Archive Bucket)
+    |
+    '--> Pub/Sub Topic B (pipeline-events)
+            |
+            v
         Cloud Run: pipeline-logger
-            └─ Writes to Firestore (file_registry)
+            '- Writes to Firestore (file_registry)
 ```
 
 ## Medallion Architecture
@@ -120,6 +117,23 @@ Cloud Run: data-agent (ADK)
 | **Bronze** | Iceberg | Raw landing zone — agent-cleaned, append-only |
 | **Silver** | Iceberg | Deduplicated, typed, standardized |
 | **Gold** | BigQuery Native | Business-ready — aggregations, vector search |
+
+Bronze tables are created by Terraform. Silver and gold tables are created via SQL transformations (see `test_data/thelook_ecommerce/silver/` and `DEMO.md`).
+
+## What Terraform Creates
+
+| Resource | Details |
+|----------|---------|
+| GCP Project | With all required APIs enabled |
+| GCS Buckets | inbox, staging (auto-delete 1d), iceberg (versioned), archive (Nearline 90d) |
+| BigQuery | 3 datasets (bronze, silver, gold) + 7 bronze Iceberg tables with schemas |
+| Cloud Run | 3 service stubs with env vars, VPC, scaling, IAM (code deployed via `deploy.sh`) |
+| Pub/Sub | 2 topics + subscriptions + dead letter topic |
+| Eventarc | GCS finalize trigger on inbox bucket |
+| Firestore | pipeline-state database with composite indices |
+| VPC | Custom network, subnets, Cloud NAT, Private Service Connect |
+| IAM | 4 service accounts with least-privilege roles |
+| Connections | BigLake, Vertex AI, Spark |
 
 ## Project Structure
 
@@ -131,11 +145,12 @@ Cloud Run: data-agent (ADK)
 │   ├── gcs.tf                          # GCS buckets (inbox, staging, iceberg, archive)
 │   ├── biglake.tf                      # BigLake, Vertex AI, Spark connections
 │   ├── bigquery.tf                     # BigQuery datasets
+│   ├── bigquery_tables.tf              # Bronze Iceberg table definitions
 │   ├── cloud_run_agent.tf              # Data agent service
 │   ├── cloud_run_loader.tf             # File loader service
 │   ├── cloud_run_logger.tf             # Pipeline logger service
 │   ├── pubsub.tf                       # Pub/Sub topics and subscriptions
-│   ├── eventarc.tf                     # GCS → data-agent trigger
+│   ├── eventarc.tf                     # GCS -> data-agent trigger
 │   ├── firestore.tf                    # Pipeline state database
 │   ├── iam.tf                          # Service accounts and IAM
 │   └── vpc.tf                          # VPC network
@@ -145,12 +160,13 @@ Cloud Run: data-agent (ADK)
 │   └── logger/                         # Pipeline event logger
 ├── test_data/
 │   └── thelook_ecommerce/
-│       ├── ddl/                        # Bronze Iceberg table DDL
+│       ├── ddl/                        # Bronze Iceberg table DDL (reference)
 │       ├── seed.py                     # Load from BigQuery public dataset
 │       ├── generate.py                 # Generate dirty incremental CSVs
 │       └── silver/                     # Silver layer DDL and transformations
 ├── pipeline.env.example                # Template for pipeline configuration
 ├── setup.sh                            # Configure SQL templates
+├── deploy.sh                           # Deploy Cloud Run services from source
 ├── DEMO.md                             # Demo scenarios and walkthrough
 └── specs/                              # Integration specifications
 ```
