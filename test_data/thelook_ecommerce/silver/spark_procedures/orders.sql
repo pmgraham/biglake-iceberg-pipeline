@@ -133,4 +133,9 @@ df = df.select(
 
 # ── Write to silver ──
 write_silver(df, "orders")
+
+# ── Export Iceberg metadata to BigLake Metastore ──
+from google.cloud import bigquery
+bq_client = bigquery.Client(project=PROJECT)
+bq_client.query("EXPORT TABLE METADATA FROM `biglake-iceberg-datalake.silver.orders`").result()
 """;
