@@ -1,7 +1,7 @@
 # --- Bronze Iceberg Tables (thelook_ecommerce) ---
 
 locals {
-  biglake_connection_full = "${var.project_id}.${var.bq_location}.${var.biglake_connection_id}"
+  biglake_connection_full = "${var.project_id}.${lower(var.bq_location)}.${var.biglake_connection_id}"
 
   bronze_tables = {
     distribution_centers = [
@@ -102,9 +102,14 @@ resource "google_bigquery_table" "bronze" {
   table_id            = each.key
   deletion_protection = false
 
+  lifecycle {
+    prevent_destroy = true
+    ignore_changes  = [schema, biglake_configuration]
+  }
+
   biglake_configuration {
     connection_id = local.biglake_connection_full
-    storage_uri   = "gs://${google_storage_bucket.pipeline.name}/iceberg/bronze/${each.key}"
+    storage_uri   = "gs://${google_storage_bucket.pipeline.name}/iceberg/bronze/${each.key}/"
     file_format   = "PARQUET"
     table_format  = "ICEBERG"
   }
