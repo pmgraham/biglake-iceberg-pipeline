@@ -45,7 +45,7 @@ variable "iceberg_catalog_name" {
 }
 
 variable "agent_image" {
-  description = "Container image URI for the data agent Cloud Run service"
+  description = "Container image URI for the data-cleaning-agent Cloud Run service (deploy from services/data-cleaning-agent/)"
   type        = string
   default     = "us-docker.pkg.dev/cloudrun/container/placeholder"
 }
