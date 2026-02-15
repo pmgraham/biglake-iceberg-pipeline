@@ -8,6 +8,11 @@ output "bucket_name" {
   value       = google_storage_bucket.pipeline.name
 }
 
+output "inbox_bucket_name" {
+  description = "Inbox GCS bucket name (Eventarc trigger)"
+  value       = google_storage_bucket.inbox.name
+}
+
 output "agent_url" {
   description = "Data agent Cloud Run service URL"
   value       = google_cloud_run_v2_service.data_agent.uri

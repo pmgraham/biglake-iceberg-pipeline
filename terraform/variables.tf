@@ -39,7 +39,12 @@ variable "bq_location" {
 }
 
 variable "bucket_name" {
-  description = "GCS bucket name for the pipeline"
+  description = "GCS bucket name for the pipeline (staging, archive, reports, Iceberg data)"
+  type        = string
+}
+
+variable "inbox_bucket_name" {
+  description = "GCS bucket name for raw file uploads (Eventarc trigger watches this bucket)"
   type        = string
 }
 

@@ -45,6 +45,10 @@ resource "google_cloud_run_v2_service" "data_agent" {
         value = google_storage_bucket.pipeline.name
       }
       env {
+        name  = "INBOX_BUCKET"
+        value = google_storage_bucket.inbox.name
+      }
+      env {
         name  = "LOAD_TOPIC"
         value = google_pubsub_topic.file_load_requests.name
       }

@@ -48,6 +48,10 @@ resource "google_cloud_run_v2_service" "file_loader" {
         value = google_storage_bucket.pipeline.name
       }
       env {
+        name  = "INBOX_BUCKET"
+        value = google_storage_bucket.inbox.name
+      }
+      env {
         name  = "EVENT_TOPIC"
         value = google_pubsub_topic.pipeline_events.name
       }

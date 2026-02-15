@@ -140,6 +140,7 @@ resource "time_sleep" "wait_for_gcs_agent" {
   depends_on = [
     google_project_service_identity.gcs_agent,
     google_storage_bucket.pipeline,
+    google_storage_bucket.inbox,
   ]
 }
 

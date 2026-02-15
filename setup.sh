@@ -16,7 +16,7 @@ fi
 source "${ENV_FILE}"
 
 # Validate required variables
-for var in PROJECT_ID BUCKET_NAME BQ_LOCATION BIGLAKE_CONNECTION SPARK_CONNECTION; do
+for var in PROJECT_ID BUCKET_NAME INBOX_BUCKET_NAME BQ_LOCATION BIGLAKE_CONNECTION SPARK_CONNECTION; do
     if [[ -z "${!var:-}" ]]; then
         echo "ERROR: ${var} is not set in pipeline.env"
         exit 1

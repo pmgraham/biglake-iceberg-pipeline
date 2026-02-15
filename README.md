@@ -83,7 +83,7 @@ python test_data/thelook_ecommerce/generate.py
 
 # Upload a batch to trigger the pipeline
 gsutil cp test_data/thelook_ecommerce/incremental/users/users_batch_001.csv \
-  gs://YOUR_BUCKET/inbox/users/
+  gs://YOUR_INBOX_BUCKET/users/
 ```
 
 ---
@@ -91,13 +91,13 @@ gsutil cp test_data/thelook_ecommerce/incremental/users/users_batch_001.csv \
 ## Architecture
 
 ```
-GCS (inbox/)
+GCS Inbox Bucket
     │
     ▼ Eventarc trigger
 Cloud Run: data-agent (ADK)
     │  ├─ quality assessment
     │  ├─ data cleaning
-    │  └─ Parquet export → GCS (staging/)
+    │  └─ Parquet export → GCS Pipeline Bucket (staging/)
     │
     ├─► Pub/Sub Topic A (LOAD_REQUEST)
     │       │
@@ -127,7 +127,7 @@ Cloud Run: data-agent (ADK)
 │   ├── main.tf                         # Project, providers, APIs
 │   ├── variables.tf                    # All configurable variables
 │   ├── terraform.tfvars.example        # Template for your values
-│   ├── gcs.tf                          # GCS bucket and folders
+│   ├── gcs.tf                          # GCS buckets (inbox + pipeline)
 │   ├── biglake.tf                      # BigLake, Vertex AI, Spark connections
 │   ├── bigquery.tf                     # BigQuery datasets
 │   ├── cloud_run_agent.tf              # Data agent service

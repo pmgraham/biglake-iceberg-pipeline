@@ -13,7 +13,7 @@ Incremental dirty batches generated via `test_data/thelook_ecommerce/generate.py
 **Steps:**
 1. Run `python test_data/thelook_ecommerce/seed.py` to load initial data from BigQuery public dataset
 2. Generate incremental batches: `python test_data/thelook_ecommerce/generate.py`
-3. Upload batch CSVs to `gs://<YOUR_BUCKET_NAME>/inbox/{table_name}/`
+3. Upload batch CSVs to `gs://<YOUR_INBOX_BUCKET>/{table_name}/`
 4. Agent auto-detects format, normalizes columns, coerces types, flags duplicates, extracts currency symbols into `value_type` companion columns
 5. Parquet lands in `staging/`, loader creates/appends Iceberg tables in `bronze.*`
 
@@ -317,7 +317,8 @@ to unlock vector indexes, auto-embeddings, BI Engine caching, and materialized v
 
 ## Infrastructure
 
-- **GCS Bucket:** `<YOUR_BUCKET_NAME>` (inbox/ → staging/ → iceberg/)
+- **GCS Inbox Bucket:** `<YOUR_INBOX_BUCKET>` (raw file uploads, Eventarc trigger)
+- **GCS Pipeline Bucket:** `<YOUR_BUCKET_NAME>` (staging/ → archive/ → iceberg/)
 - **BigQuery Datasets:** `bronze`, `silver`, `gold`
 - **Iceberg Metastore:** BigLake Metastore (auto-registered via BigLake connection)
 - **Cloud Run Services:** data-agent, file-loader, pipeline-logger

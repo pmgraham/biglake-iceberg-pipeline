@@ -10,7 +10,7 @@ resource "google_eventarc_trigger" "gcs_file_upload" {
 
   matching_criteria {
     attribute = "bucket"
-    value     = google_storage_bucket.pipeline.name
+    value     = google_storage_bucket.inbox.name
   }
 
   destination {

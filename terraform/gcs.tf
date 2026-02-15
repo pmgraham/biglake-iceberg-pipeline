@@ -1,3 +1,17 @@
+# --- Inbox Bucket (raw file uploads — Eventarc watches this bucket) ---
+
+resource "google_storage_bucket" "inbox" {
+  name     = var.inbox_bucket_name
+  location = var.region
+  project  = google_project.pipeline.project_id
+
+  uniform_bucket_level_access = true
+
+  depends_on = [google_project_service.required_apis]
+}
+
+# --- Pipeline Bucket (staging, archive, reports, Iceberg data) ---
+
 resource "google_storage_bucket" "pipeline" {
   name     = var.bucket_name
   location = var.region
@@ -37,7 +51,6 @@ resource "google_storage_bucket" "pipeline" {
 # Placeholder objects for folder structure
 resource "google_storage_bucket_object" "folders" {
   for_each = toset([
-    "inbox/",
     "staging/",
     "archive/",
     "reports/quality/",

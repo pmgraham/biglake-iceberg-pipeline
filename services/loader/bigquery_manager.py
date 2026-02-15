@@ -24,6 +24,61 @@ def table_exists(namespace: str, table_name: str) -> bool:
         return False
 
 
+def evolve_schema(namespace: str, table_name: str, parquet_uri: str) -> list[str]:
+    """Add columns from parquet that are missing in the target table.
+
+    Bronze tables are append-only landing zones, so additive schema evolution
+    is safe — new columns read as NULL from older Iceberg data files.
+
+    Returns the list of column names that were added.
+    """
+    table_ref_str = f"{Config.GCP_PROJECT}.{namespace}.{table_name}"
+
+    existing_table = _client.get_table(table_ref_str)
+    existing_names = {field.name.lower() for field in existing_table.schema}
+
+    # Infer incoming schema from parquet via temp external table
+    temp_suffix = uuid.uuid4().hex[:8]
+    temp_ref = f"`{Config.GCP_PROJECT}.{namespace}._schema_probe_{temp_suffix}`"
+    _client.query(
+        f"CREATE OR REPLACE EXTERNAL TABLE {temp_ref} "
+        f"OPTIONS (format = 'PARQUET', uris = ['{parquet_uri}'])"
+    ).result()
+
+    try:
+        temp_table = _client.get_table(
+            f"{Config.GCP_PROJECT}.{namespace}._schema_probe_{temp_suffix}"
+        )
+        parquet_schema = list(temp_table.schema)
+    finally:
+        _client.query(f"DROP EXTERNAL TABLE IF EXISTS {temp_ref}").result()
+
+    new_columns = [
+        field for field in parquet_schema
+        if field.name.lower() not in existing_names
+    ]
+
+    if not new_columns:
+        return []
+
+    added = []
+    for field in new_columns:
+        alter_sql = (
+            f"ALTER TABLE `{table_ref_str}` "
+            f"ADD COLUMN `{field.name}` {field.field_type}"
+        )
+        _client.query(alter_sql).result()
+        added.append(field.name)
+
+    logger.info(
+        "Schema evolution on %s.%s — added columns: %s",
+        namespace,
+        table_name,
+        ", ".join(added),
+    )
+    return added
+
+
 def create_iceberg_table(
     namespace: str,
     table_name: str,
@@ -44,7 +99,7 @@ def create_iceberg_table(
     table_ref = f"`{Config.GCP_PROJECT}.{namespace}.{table_name}`"
     connection_ref = f"`{_CONNECTION_ID}`"
     temp_suffix = uuid.uuid4().hex[:8]
-    temp_table = f"`{Config.GCP_PROJECT}._pre_processing._temp_create_{temp_suffix}`"
+    temp_table = f"`{Config.GCP_PROJECT}.{namespace}._temp_create_{temp_suffix}`"
 
     # Step 1: Create temp external table to infer schema from parquet
     create_temp_sql = f"""
@@ -96,6 +151,8 @@ def load_data(
     write_mode: APPEND or OVERWRITE.
     Returns the BigQuery job ID as the load identifier.
     """
+    evolve_schema(namespace, table_name, parquet_uri)
+
     table_ref = f"`{Config.GCP_PROJECT}.{namespace}.{table_name}`"
 
     if write_mode == "OVERWRITE":
@@ -139,9 +196,11 @@ def upsert_data(
 
     Returns the BigQuery job ID as the load identifier.
     """
+    evolve_schema(namespace, table_name, parquet_uri)
+
     table_ref = f"`{Config.GCP_PROJECT}.{namespace}.{table_name}`"
     temp_suffix = uuid.uuid4().hex[:8]
-    temp_table = f"`{Config.GCP_PROJECT}._pre_processing._temp_upsert_{temp_suffix}`"
+    temp_table = f"`{Config.GCP_PROJECT}.{namespace}._temp_upsert_{temp_suffix}`"
 
     # Create temporary external table pointing at the parquet file
     create_temp_sql = f"""
