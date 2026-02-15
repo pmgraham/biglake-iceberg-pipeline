@@ -1,6 +1,10 @@
 # Data Agent — Required Changes for Pipeline Integration
 
-This document specifies all changes needed in the `datagrunt-agent` repo to integrate with the event-driven pipeline.
+> **Agent source**: The datagrunt-agent has been copied into this repo at
+> `services/data-cleaning-agent/`. All new files and changes described below
+> should be made in that directory.
+
+This document specifies all changes needed to integrate the data-cleaning-agent with the event-driven pipeline.
 
 ## Overview
 

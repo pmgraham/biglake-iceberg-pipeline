@@ -1,3 +1,5 @@
+# Source: services/data-cleaning-agent/
+# Deploy: gcloud run deploy data-agent --source services/data-cleaning-agent/ --region $REGION --project $PROJECT
 resource "google_cloud_run_v2_service" "data_agent" {
   name     = "data-agent"
   location = var.region
