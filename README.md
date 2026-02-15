@@ -2,6 +2,92 @@
 
 Event-driven data pipeline using BigQuery Iceberg tables, Cloud Run, and an AI-powered data cleaning agent.
 
+---
+
+## Getting Started
+
+### Prerequisites
+
+- GCP project with billing enabled
+- `gcloud` CLI authenticated (`gcloud auth login && gcloud auth application-default login`)
+- Terraform >= 1.5
+- Python 3.12+
+- Docker (for Cloud Run deploys)
+
+### Step 1 — Clone and configure
+
+```bash
+git clone https://github.com/pmgraham/biglake-iceberg-pipeline.git
+cd biglake-iceberg-pipeline
+
+# Pipeline configuration (SQL templates, seed script)
+cp pipeline.env.example pipeline.env
+# Edit pipeline.env with your project ID, bucket name, etc.
+
+# Terraform variables
+cp terraform/terraform.tfvars.example terraform/terraform.tfvars
+# Edit terraform.tfvars with billing account, project ID, bucket name
+```
+
+### Step 2 — Apply SQL templates
+
+```bash
+./setup.sh
+```
+
+Replaces placeholder tokens (`__PROJECT_ID__`, `__BUCKET_NAME__`, etc.) in all 29 SQL files with your values from `pipeline.env`.
+
+### Step 3 — Deploy infrastructure
+
+```bash
+cd terraform
+terraform init -backend-config="bucket=YOUR_TF_STATE_BUCKET"
+terraform plan -var-file=terraform.tfvars
+terraform apply
+cd ..
+```
+
+### Step 4 — Create Iceberg tables
+
+Run the bronze DDL files in BigQuery to create empty Iceberg tables:
+
+```bash
+for f in test_data/thelook_ecommerce/ddl/*.sql; do
+  bq query --use_legacy_sql=false < "$f"
+done
+```
+
+### Step 5 — Seed initial data
+
+```bash
+pip install google-cloud-bigquery
+python test_data/thelook_ecommerce/seed.py
+```
+
+Loads data from `bigquery-public-data.thelook_ecommerce` into your bronze Iceberg tables (7 tables).
+
+### Step 6 — Deploy Cloud Run services
+
+```bash
+gcloud run deploy data-agent --source services/data-cleaning-agent/ --region $REGION --project $PROJECT
+gcloud run deploy file-loader --source services/loader/ --region $REGION --project $PROJECT
+gcloud run deploy pipeline-logger --source services/logger/ --region $REGION --project $PROJECT
+```
+
+### Step 7 — Test the pipeline
+
+```bash
+# Generate dirty incremental batch CSVs
+pip install faker
+python test_data/thelook_ecommerce/generate.py
+
+# Upload a batch to trigger the pipeline
+gsutil cp test_data/thelook_ecommerce/incremental/users/users_batch_001.csv \
+  gs://YOUR_BUCKET/inbox/users/
+```
+
+---
+
 ## Architecture
 
 ```
@@ -33,84 +119,6 @@ Cloud Run: data-agent (ADK)
 | **Bronze** | Iceberg | Raw landing zone — agent-cleaned, append-only |
 | **Silver** | Iceberg | Deduplicated, typed, standardized |
 | **Gold** | BigQuery Native | Business-ready — aggregations, vector search |
-
-## Prerequisites
-
-- GCP project with billing enabled
-- `gcloud` CLI authenticated
-- Terraform >= 1.5
-- Python 3.12+
-- Docker (for Cloud Run deploys)
-
-## Quick Start
-
-### 1. Configure
-
-```bash
-# Pipeline configuration (SQL templates, seed script)
-cp pipeline.env.example pipeline.env
-# Edit pipeline.env with your project ID, bucket name, etc.
-
-# Terraform variables
-cp terraform/terraform.tfvars.example terraform/terraform.tfvars
-# Edit terraform.tfvars with billing account, project ID, bucket name
-```
-
-### 2. Set up SQL templates
-
-```bash
-chmod +x setup.sh
-./setup.sh
-```
-
-### 3. Deploy infrastructure
-
-```bash
-cd terraform
-terraform init -backend-config="bucket=YOUR_TF_STATE_BUCKET"
-terraform plan -var-file=terraform.tfvars
-terraform apply
-```
-
-### 4. Create Iceberg tables
-
-Run the bronze DDL files in BigQuery to create empty Iceberg tables:
-
-```bash
-# Run each file in test_data/thelook_ecommerce/ddl/ via BigQuery Console or bq CLI
-bq query --use_legacy_sql=false < test_data/thelook_ecommerce/ddl/distribution_centers.sql
-bq query --use_legacy_sql=false < test_data/thelook_ecommerce/ddl/users.sql
-# ... repeat for all 7 tables
-```
-
-### 5. Seed initial data
-
-```bash
-pip install google-cloud-bigquery
-python test_data/thelook_ecommerce/seed.py
-```
-
-This loads data from `bigquery-public-data.thelook_ecommerce` into your bronze Iceberg tables.
-
-### 6. Deploy Cloud Run services
-
-```bash
-gcloud run deploy data-agent --source services/data-cleaning-agent/ --region $REGION --project $PROJECT
-gcloud run deploy file-loader --source services/loader/ --region $REGION --project $PROJECT
-gcloud run deploy pipeline-logger --source services/logger/ --region $REGION --project $PROJECT
-```
-
-### 7. Test the pipeline
-
-```bash
-# Generate dirty incremental batch CSVs
-pip install faker
-python test_data/thelook_ecommerce/generate.py
-
-# Upload a batch to trigger the pipeline
-gsutil cp test_data/thelook_ecommerce/incremental/users/users_batch_001.csv \
-  gs://YOUR_BUCKET/inbox/users/
-```
 
 ## Project Structure
 
