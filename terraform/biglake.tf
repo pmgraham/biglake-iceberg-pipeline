@@ -10,7 +10,7 @@ resource "google_biglake_catalog" "pipeline" {
 # BigQuery connection for BigLake Iceberg tables
 resource "google_bigquery_connection" "biglake_iceberg" {
   provider      = google-beta
-  connection_id = "biglake-iceberg"
+  connection_id = var.biglake_connection_id
   location      = var.region
   project       = google_project.pipeline.project_id
 
@@ -29,7 +29,7 @@ resource "google_project_iam_member" "biglake_connection_storage" {
 # BigQuery remote connection for Vertex AI model serving
 resource "google_bigquery_connection" "vertex_ai" {
   provider      = google-beta
-  connection_id = "vertex-ai-remote"
+  connection_id = var.vertex_ai_connection_id
   location      = var.region
   project       = google_project.pipeline.project_id
 
@@ -48,7 +48,7 @@ resource "google_project_iam_member" "vertex_ai_connection_user" {
 # BigQuery Spark connection for PySpark stored procedures
 resource "google_bigquery_connection" "spark_proc" {
   provider      = google-beta
-  connection_id = "spark-proc"
+  connection_id = var.spark_connection_id
   location      = var.region
   project       = google_project.pipeline.project_id
 

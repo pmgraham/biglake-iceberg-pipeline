@@ -36,6 +36,8 @@ venv/
 env/
 .env
 .env.*
+!.env.example
+pipeline.env
 
 # Node (if applicable)
 node_modules/
