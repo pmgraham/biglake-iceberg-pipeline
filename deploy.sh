@@ -43,30 +43,34 @@ echo "Region:  ${REGION}"
 echo ""
 
 # ---------------------------------------------------------------------------
-# Service definitions
+# Service definitions (bash 3.x compatible — no associative arrays)
 # ---------------------------------------------------------------------------
-declare -A SERVICE_SOURCES=(
-    ["data-agent"]="services/data-cleaning-agent"
-    ["file-loader"]="services/loader"
-    ["pipeline-logger"]="services/logger"
-)
+get_source_dir() {
+    case "$1" in
+        data-agent)       echo "services/data-cleaning-agent" ;;
+        file-loader)      echo "services/loader" ;;
+        pipeline-logger)  echo "services/logger" ;;
+        *)                echo "" ;;
+    esac
+}
 
-ALL_SERVICES=("data-agent" "file-loader" "pipeline-logger")
+ALL_SERVICES="data-agent file-loader pipeline-logger"
 
 # ---------------------------------------------------------------------------
 # Determine which services to deploy
 # ---------------------------------------------------------------------------
 if [[ $# -eq 0 ]]; then
-    SERVICES=("${ALL_SERVICES[@]}")
+    SERVICES="${ALL_SERVICES}"
 else
-    SERVICES=("$@")
+    SERVICES="$*"
 fi
 
 # Validate service names
-for svc in "${SERVICES[@]}"; do
-    if [[ -z "${SERVICE_SOURCES[$svc]+x}" ]]; then
+for svc in ${SERVICES}; do
+    src=$(get_source_dir "${svc}")
+    if [[ -z "${src}" ]]; then
         echo "ERROR: Unknown service '${svc}'"
-        echo "  Valid services: ${ALL_SERVICES[*]}"
+        echo "  Valid services: ${ALL_SERVICES}"
         exit 1
     fi
 done
@@ -74,18 +78,19 @@ done
 # ---------------------------------------------------------------------------
 # Deploy
 # ---------------------------------------------------------------------------
-FAILED=()
+FAILED=""
 
-for svc in "${SERVICES[@]}"; do
-    source_dir="${SCRIPT_DIR}/${SERVICE_SOURCES[$svc]}"
-    echo "--- Deploying ${svc} from ${SERVICE_SOURCES[$svc]}/ ---"
+for svc in ${SERVICES}; do
+    src=$(get_source_dir "${svc}")
+    source_dir="${SCRIPT_DIR}/${src}"
+    echo "--- Deploying ${svc} from ${src}/ ---"
 
     if ! gcloud run deploy "${svc}" \
         --source "${source_dir}" \
         --region "${REGION}" \
         --project "${PROJECT}"; then
         echo "FAILED: ${svc}"
-        FAILED+=("${svc}")
+        FAILED="${FAILED} ${svc}"
     else
         echo "OK: ${svc}"
     fi
@@ -95,9 +100,9 @@ done
 # ---------------------------------------------------------------------------
 # Summary
 # ---------------------------------------------------------------------------
-if [[ ${#FAILED[@]} -gt 0 ]]; then
+if [[ -n "${FAILED}" ]]; then
     echo "Deploy completed with errors:"
-    for svc in "${FAILED[@]}"; do
+    for svc in ${FAILED}; do
         echo "  FAILED: ${svc}"
     done
     exit 1

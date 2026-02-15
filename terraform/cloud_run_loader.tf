@@ -3,7 +3,8 @@ resource "google_cloud_run_v2_service" "file_loader" {
   location = var.region
   project  = google_project.pipeline.project_id
 
-  ingress = "INGRESS_TRAFFIC_INTERNAL_ONLY"
+  deletion_protection = false
+  ingress             = "INGRESS_TRAFFIC_INTERNAL_ONLY"
 
   template {
     service_account = google_service_account.file_loader.email

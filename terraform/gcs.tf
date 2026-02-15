@@ -6,6 +6,7 @@ resource "google_storage_bucket" "inbox" {
   project  = google_project.pipeline.project_id
 
   uniform_bucket_level_access = true
+  force_destroy               = true
 
   depends_on = [google_project_service.required_apis]
 }
@@ -18,6 +19,7 @@ resource "google_storage_bucket" "staging" {
   project  = google_project.pipeline.project_id
 
   uniform_bucket_level_access = true
+  force_destroy               = true
 
   lifecycle_rule {
     condition {
@@ -39,6 +41,7 @@ resource "google_storage_bucket" "iceberg" {
   project  = google_project.pipeline.project_id
 
   uniform_bucket_level_access = true
+  force_destroy               = true
   versioning {
     enabled = true
   }
@@ -54,6 +57,7 @@ resource "google_storage_bucket" "archive" {
   project  = google_project.pipeline.project_id
 
   uniform_bucket_level_access = true
+  force_destroy               = true
 
   lifecycle_rule {
     condition {
