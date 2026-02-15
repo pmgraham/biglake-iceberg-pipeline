@@ -3,7 +3,7 @@ WITH CONNECTION `__PROJECT_ID__.__REGION__.__BIGLAKE_CONNECTION__`
 OPTIONS (
     file_format = 'PARQUET',
     table_format = 'ICEBERG',
-    storage_uri = 'gs://__BUCKET_NAME__/iceberg/bronze/products'
+    storage_uri = 'gs://__ICEBERG_BUCKET_NAME__/bronze/products'
 )
 AS SELECT
     CAST(NULL AS INT64) AS id,

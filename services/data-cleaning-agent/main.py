@@ -25,8 +25,8 @@ logger = logging.getLogger(__name__)
 # Config (env vars set by Terraform cloud_run_agent.tf)
 # ---------------------------------------------------------------------------
 GCP_PROJECT = os.environ["GCP_PROJECT"]
-GCS_BUCKET = os.environ["GCS_BUCKET"]  # pipeline bucket
 INBOX_BUCKET = os.environ["INBOX_BUCKET"]
+STAGING_BUCKET = os.environ["STAGING_BUCKET"]
 LOAD_TOPIC = os.environ["LOAD_TOPIC"]
 EVENT_TOPIC = os.environ["EVENT_TOPIC"]
 
@@ -61,11 +61,11 @@ def _file_hash(bucket: str, name: str) -> str:
 
 
 def _upload_to_gcs(local_path: str, gcs_path: str) -> str:
-    """Upload a local file to the pipeline bucket. Returns gs:// URI."""
-    bucket = _storage_client.bucket(GCS_BUCKET)
+    """Upload a local file to the staging bucket. Returns gs:// URI."""
+    bucket = _storage_client.bucket(STAGING_BUCKET)
     blob = bucket.blob(gcs_path)
     blob.upload_from_filename(local_path)
-    uri = f"gs://{GCS_BUCKET}/{gcs_path}"
+    uri = f"gs://{STAGING_BUCKET}/{gcs_path}"
     logger.info("Uploaded %s → %s", local_path, uri)
     return uri
 
@@ -161,10 +161,10 @@ def handle_gcs_event(cloud_event: CloudEvent):
         cleaning_report_local = os.path.join(WORK_DIR, f"{target_table}_cleaning.json")
         export_cleaning_report(table_name, cleaning_report_local, ctx)
 
-        # --- Step 6: Upload outputs to pipeline bucket ---
+        # --- Step 6: Upload outputs to staging bucket ---
         parquet_uri = _upload_to_gcs(
             parquet_local,
-            f"staging/{target_table}/{file_name.rsplit('.', 1)[0]}.parquet",
+            f"parquet/{target_table}/{file_name.rsplit('.', 1)[0]}.parquet",
         )
         quality_report_uri = _upload_to_gcs(
             quality_report_local,

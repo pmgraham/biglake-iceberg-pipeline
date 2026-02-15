@@ -22,11 +22,11 @@ cd biglake-iceberg-pipeline
 
 # Pipeline configuration (SQL templates, seed script)
 cp pipeline.env.example pipeline.env
-# Edit pipeline.env with your project ID, bucket name, etc.
+# Edit pipeline.env with your project ID, bucket names, etc.
 
 # Terraform variables
 cp terraform/terraform.tfvars.example terraform/terraform.tfvars
-# Edit terraform.tfvars with billing account, project ID, bucket name
+# Edit terraform.tfvars with billing account, project ID, bucket names
 ```
 
 ### Step 2 — Apply SQL templates
@@ -35,7 +35,7 @@ cp terraform/terraform.tfvars.example terraform/terraform.tfvars
 ./setup.sh
 ```
 
-Replaces placeholder tokens (`__PROJECT_ID__`, `__BUCKET_NAME__`, etc.) in all 29 SQL files with your values from `pipeline.env`.
+Replaces placeholder tokens (`__PROJECT_ID__`, `__ICEBERG_BUCKET_NAME__`, etc.) in all SQL files with your values from `pipeline.env`.
 
 ### Step 3 — Deploy infrastructure
 
@@ -91,19 +91,20 @@ gsutil cp test_data/thelook_ecommerce/incremental/users/users_batch_001.csv \
 ## Architecture
 
 ```
-GCS Inbox Bucket
+GCS Inbox Bucket (raw uploads)
     │
     ▼ Eventarc trigger
 Cloud Run: data-agent (ADK)
     │  ├─ quality assessment
     │  ├─ data cleaning
-    │  └─ Parquet export → GCS Pipeline Bucket (staging/)
+    │  └─ Parquet export → GCS Staging Bucket
     │
     ├─► Pub/Sub Topic A (LOAD_REQUEST)
     │       │
     │       ▼
     │   Cloud Run: file-loader
-    │       └─ Creates/appends BigQuery Iceberg tables
+    │       ├─ Creates/appends BigQuery Iceberg tables (GCS Iceberg Bucket)
+    │       └─ Archives originals (GCS Archive Bucket)
     │
     └─► Pub/Sub Topic B (pipeline-events)
             │
@@ -127,7 +128,7 @@ Cloud Run: data-agent (ADK)
 │   ├── main.tf                         # Project, providers, APIs
 │   ├── variables.tf                    # All configurable variables
 │   ├── terraform.tfvars.example        # Template for your values
-│   ├── gcs.tf                          # GCS buckets (inbox + pipeline)
+│   ├── gcs.tf                          # GCS buckets (inbox, staging, iceberg, archive)
 │   ├── biglake.tf                      # BigLake, Vertex AI, Spark connections
 │   ├── bigquery.tf                     # BigQuery datasets
 │   ├── cloud_run_agent.tf              # Data agent service
@@ -179,6 +180,6 @@ Records all pipeline events to Firestore for observability and duplicate detecti
 
 ## SQL Templating
 
-SQL files under `test_data/` use placeholder tokens (`__PROJECT_ID__`, `__BUCKET_NAME__`, etc.) that are replaced by `setup.sh` using values from `pipeline.env`.
+SQL files under `test_data/` use placeholder tokens (`__PROJECT_ID__`, `__ICEBERG_BUCKET_NAME__`, etc.) that are replaced by `setup.sh` using values from `pipeline.env`.
 
 See `pipeline.env.example` for all available configuration options.

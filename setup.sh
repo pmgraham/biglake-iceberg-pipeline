@@ -16,7 +16,7 @@ fi
 source "${ENV_FILE}"
 
 # Validate required variables
-for var in PROJECT_ID BUCKET_NAME INBOX_BUCKET_NAME BQ_LOCATION BIGLAKE_CONNECTION SPARK_CONNECTION; do
+for var in PROJECT_ID INBOX_BUCKET_NAME STAGING_BUCKET_NAME ICEBERG_BUCKET_NAME ARCHIVE_BUCKET_NAME BQ_LOCATION BIGLAKE_CONNECTION SPARK_CONNECTION; do
     if [[ -z "${!var:-}" ]]; then
         echo "ERROR: ${var} is not set in pipeline.env"
         exit 1
@@ -24,11 +24,11 @@ for var in PROJECT_ID BUCKET_NAME INBOX_BUCKET_NAME BQ_LOCATION BIGLAKE_CONNECTI
 done
 
 echo "Configuring SQL templates..."
-echo "  PROJECT_ID:         ${PROJECT_ID}"
-echo "  BUCKET_NAME:        ${BUCKET_NAME}"
-echo "  BQ_LOCATION:        ${BQ_LOCATION}"
-echo "  BIGLAKE_CONNECTION: ${BIGLAKE_CONNECTION}"
-echo "  SPARK_CONNECTION:   ${SPARK_CONNECTION}"
+echo "  PROJECT_ID:           ${PROJECT_ID}"
+echo "  ICEBERG_BUCKET_NAME:  ${ICEBERG_BUCKET_NAME}"
+echo "  BQ_LOCATION:          ${BQ_LOCATION}"
+echo "  BIGLAKE_CONNECTION:   ${BIGLAKE_CONNECTION}"
+echo "  SPARK_CONNECTION:     ${SPARK_CONNECTION}"
 echo ""
 
 # Cross-platform sed -i
@@ -43,7 +43,7 @@ count=0
 while IFS= read -r -d '' file; do
     sed "${SED_INPLACE[@]}" \
         -e "s/__PROJECT_ID__/${PROJECT_ID}/g" \
-        -e "s/__BUCKET_NAME__/${BUCKET_NAME}/g" \
+        -e "s/__ICEBERG_BUCKET_NAME__/${ICEBERG_BUCKET_NAME}/g" \
         -e "s/__REGION__/${BQ_LOCATION}/g" \
         -e "s/__BIGLAKE_CONNECTION__/${BIGLAKE_CONNECTION}/g" \
         -e "s/__SPARK_CONNECTION__/${SPARK_CONNECTION}/g" \

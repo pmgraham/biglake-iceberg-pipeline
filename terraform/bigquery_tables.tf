@@ -109,7 +109,7 @@ resource "google_bigquery_table" "bronze" {
 
   biglake_configuration {
     connection_id = local.biglake_connection_full
-    storage_uri   = "gs://${google_storage_bucket.pipeline.name}/iceberg/bronze/${each.key}/"
+    storage_uri   = "gs://${google_storage_bucket.iceberg.name}/bronze/${each.key}/"
     file_format   = "PARQUET"
     table_format  = "ICEBERG"
   }

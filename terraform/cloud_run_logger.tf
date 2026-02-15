@@ -41,11 +41,6 @@ resource "google_cloud_run_v2_service" "pipeline_logger" {
       }
 
       env {
-        name  = "GCS_BUCKET"
-        value = google_storage_bucket.pipeline.name
-      }
-
-      env {
         name  = "INBOX_BUCKET"
         value = google_storage_bucket.inbox.name
       }

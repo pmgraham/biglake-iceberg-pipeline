@@ -38,13 +38,23 @@ variable "bq_location" {
   default     = "US"
 }
 
-variable "bucket_name" {
-  description = "GCS bucket name for the pipeline (staging, archive, reports, Iceberg data)"
+variable "inbox_bucket_name" {
+  description = "GCS bucket name for raw file uploads (Eventarc trigger watches this bucket)"
   type        = string
 }
 
-variable "inbox_bucket_name" {
-  description = "GCS bucket name for raw file uploads (Eventarc trigger watches this bucket)"
+variable "staging_bucket_name" {
+  description = "GCS bucket name for agent parquet output and reports (auto-deleted after 1 day)"
+  type        = string
+}
+
+variable "iceberg_bucket_name" {
+  description = "GCS bucket name for BigQuery Iceberg table data"
+  type        = string
+}
+
+variable "archive_bucket_name" {
+  description = "GCS bucket name for archived original files"
   type        = string
 }
 
