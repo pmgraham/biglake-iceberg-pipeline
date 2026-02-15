@@ -1,7 +1,7 @@
 resource "google_firestore_database" "pipeline_state" {
   provider    = google-beta
   project     = google_project.pipeline.project_id
-  name        = "pipeline-state"
+  name        = var.firestore_database_name
   location_id = var.region
   type        = "FIRESTORE_NATIVE"
 

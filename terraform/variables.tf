@@ -1,7 +1,6 @@
 variable "project_id" {
   description = "GCP project ID"
   type        = string
-  default     = "biglake-iceberg-datalake"
 }
 
 variable "billing_account" {
@@ -84,4 +83,28 @@ variable "logger_memory" {
   description = "Memory allocation for the pipeline logger"
   type        = string
   default     = "512Mi"
+}
+
+variable "biglake_connection_id" {
+  description = "BigQuery connection ID for BigLake Iceberg tables"
+  type        = string
+  default     = "biglake-iceberg"
+}
+
+variable "vertex_ai_connection_id" {
+  description = "BigQuery remote connection ID for Vertex AI model serving"
+  type        = string
+  default     = "vertex-ai-remote"
+}
+
+variable "spark_connection_id" {
+  description = "BigQuery Spark connection ID for PySpark stored procedures"
+  type        = string
+  default     = "spark-proc"
+}
+
+variable "firestore_database_name" {
+  description = "Firestore database name for pipeline state"
+  type        = string
+  default     = "pipeline-state"
 }
